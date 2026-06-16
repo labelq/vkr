@@ -1,0 +1,62 @@
+services:
+
+  # ─── PostgreSQL ───────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: puc_learning
+      POSTGRES_USER: puc
+      POSTGRES_PASSWORD: pucpass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U puc -d puc_learning"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── DB seed (runs once on first start) ───────────────────────
+  seed:
+    build:
+      context: backend
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://puc:pucpass@db:5432/puc_learning
+    command: python -m backend.db.seed
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  # ─── FastAPI backend (starts only after seed completes) ──────
+  backend:
+    build:
+      context: backend
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://puc:pucpass@db:5432/puc_learning
+      SECRET_KEY: puc-secret-change-in-production
+    depends_on:
+      db:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+
+  # ─── React frontend (nginx) ───────────────────────────────────
+  frontend:
+    build:
+      context: frontend
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

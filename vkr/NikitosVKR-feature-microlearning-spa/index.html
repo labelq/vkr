@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МикроОбучение ПУЦ — Система обучения сотрудников МФЦ</title>
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%238B5CF6'/><stop offset='1' stop-color='%233B82F6'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><path d='M8 12l8-5 8 5v6c0 4-3.5 7-8 8-4.5-1-8-4-8-8z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/><path d='M13 17l2 2 4-4' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>">
+</head>
+<body>
+<div id="app"></div>
+<div class="toast-container" id="toasts"></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+// ========== SVG ICONS ==========
+const sz = 'width="18" height="18"';
+const Icon = {
+  home: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
+  book: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`,
+  ticket: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>`,
+  user: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`,
+  users: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`,
+  chart: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`,
+  settings: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+  logout: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>`,
+  check: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+  arrow_right: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>`,
+  arrow_left: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>`,
+  plus: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>`,
+  star: `<svg ${sz} fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+  shield: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>`,
+  lightning: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+  search: `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>`,
+  edit: `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`,
+  trash: `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`,
+  info: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+  faq: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.144 2.588-2.787 2.9C12.442 13.198 12 13.8 12 14.5V15m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+  add_circle: `<svg ${sz} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+};
+
+// ========== ROUTER ==========
+const Router = {
+  current: '/',
+  params: {},
+  go(path) {
+    window.location.hash = '#' + path;
+  },
+  parse() {
+    const hash = window.location.hash.slice(1) || '/';
+    const parts = hash.split('/').filter(Boolean);
+    const route = '/' + (parts[0] || '');
+    const params = {};
+    if (parts[1]) params.id = parts[1];
+    if (parts[2]) params.sub = parts[2];
+    if (parts[3]) params.subId = parts[3];
+    this.current = hash;
+    this.params = params;
+    return { route, parts, params };
+  },
+  init() {
+    window.addEventListener('hashchange', () => App.render());
+    App.render();
+  }
+};
+
+// Loading spinner helper
+function showLoading() {
+  document.getElementById('app').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:80vh"><div style="color:var(--t2);font-size:15px">Загрузка…</div></div>';
+}
+
+// ========== TOAST ==========
+function toast(msg, type='info') {
+  const c = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ========== MARKDOWN renderer (simple) ==========
+function renderMd(md) {
+  if (!md) return '';
+  let html = md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c.trim()}</code></pre>`)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^\| (.+) \|$/gm, row => {
+      const cells = row.split('|').map(c=>c.trim()).filter(Boolean);
+      if (cells.every(c=>c.match(/^[-:]+$/))) return '';
+      const tag = cells[0] === cells[0].toUpperCase() && cells.length > 1 && cells[0].length < 30 ? 'th' : 'td';
+      return '<tr>' + cells.map(c=>`<${tag}>${c}</${tag}>`).join('') + '</tr>';
+    })
+    .replace(/((<tr>.*<\/tr>\n?)+)/gs, m => `<table>${m}</table>`)
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, m => m.includes('\n') ? m : `<ul>${m}</ul>`)
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+  return `<p>${html}</p>`;
+}
+
+// ========== STAT CARD HELPER ==========
+function StatCard(icon, value, label, color, bg) {
+  return `
+  <div class="stat-card" style="--sc:${color}">
+    <div class="stat-header">
+      <div class="stat-icon" style="background:${bg};color:${color}">${icon}</div>
+      <div class="stat-label">${label}</div>
+    </div>
+    <div class="stat-value">${value}</div>
+  </div>`;
+}
+
+// ========== LAYOUT COMPONENTS ==========
+function Sidebar(user) {
+  const isAdmin = ['admin','moderator'].includes(user.role);
+  const path = window.location.hash.slice(1) || '/';
+  const active = (href) => path.startsWith(href) ? 'active' : '';
+  const initials = user.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const roleLabel = {user:'Сотрудник',moderator:'Модератор',admin:'Администратор'}[user.role];
+  return `
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">ПУЦ</div>
+      <div class="logo-text">МикроОбучение</div>
+      <div class="logo-sub">Поволжский удостоверяющий центр</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Основное</div>
+      <div class="nav-item ${active('/dashboard')}" data-nav="/dashboard">${Icon.home}Дашборд</div>
+      <div class="nav-item ${active('/courses')}" data-nav="/courses">${Icon.book}Курсы</div>
+      <div class="nav-item ${active('/support')}" data-nav="/support">${Icon.ticket}Поддержка</div>
+      <div class="nav-item ${active('/profile')}" data-nav="/profile">${Icon.user}Профиль</div>
+      ${isAdmin ? `
+      <div class="nav-section-label" style="margin-top:8px">Администрирование</div>
+      <div class="nav-item ${active('/admin/users')}" data-nav="/admin/users">${Icon.users}Пользователи</div>
+      <div class="nav-item ${active('/admin/courses')}" data-nav="/admin/courses">${Icon.settings}Управление курсами</div>
+      <div class="nav-item ${active('/admin/analytics')}" data-nav="/admin/analytics">${Icon.chart}Аналитика</div>
+      <div class="nav-item ${active('/admin/tickets')}" data-nav="/admin/tickets">${Icon.ticket}Все обращения</div>
+      <div class="nav-item ${active('/admin/faq')}" data-nav="/admin/faq">${Icon.faq}База знаний</div>
+      ` : ''}
+    </nav>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">${initials}</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">${user.name.split(' ')[0]} ${user.name.split(' ')[1] || ''}</div>
+        <div class="sidebar-user-role">${roleLabel}</div>
+      </div>
+      <button class="logout-btn" data-action="logout" title="Выйти">${Icon.logout}</button>
+    </div>
+  </aside>`;
+}
+
+function Layout(user, title, body, actions='') {
+  return `
+  <div class="app-layout">
+    ${Sidebar(user)}
+    <div class="main-content">
+      <div class="page-header">
+        <div class="page-title">${title}</div>
+        <div>${actions}</div>
+      </div>
+      <div class="page-body">${body}</div>
+    </div>
+  </div>`;
+}
+
+function ProgressBar(pct, color='') {
+  return `<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;${color?'background:'+color:''}"></div></div>`;
+}
+
+function StatusBadge(status) {
+  const map = { open: ['badge-red','Открыто'], in_progress: ['badge-yellow','В работе'], closed: ['badge-green','Закрыто'] };
+  const [cls, label] = map[status] || ['badge-gray', status];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+// ========== PAGES ==========
+const Pages = {};
+
+// ---- LANDING ----
+Pages.landing = function() {
+  const courses = [
+    {label:'РЕД ОС', color:'#4f46e5', icon:'🐧'},
+    {label:'КриптоПро CSP', color:'#7c3aed', icon:'🔐'},
+    {label:'OnlyOffice', color:'#059669', icon:'📄'},
+    {label:'Astra Linux', color:'#dc2626', icon:'⚡'},
+  ];
+  const coursePills = courses.map(c =>
+    `<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:99px;padding:7px 16px;font-size:13px;color:rgba(255,255,255,0.8);backdrop-filter:blur(4px)">
+      <span style="width:8px;height:8px;border-radius:50%;background:${c.color};display:inline-block;box-shadow:0 0 6px ${c.color}"></span>${c.label}
+    </div>`
+  ).join('');
+
+  const featureIcons = {
+    book:    `<svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`,
+    check:   `<svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    chart:   `<svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`,
+    support: `<svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`,
+    shield:  `<svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>`,
+    linux:   `<svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`,
+  };
+
+  return `
+  <div class="landing-hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        ООО «Поволжский удостоверяющий центр»
+      </div>
+      <h1 class="hero-title">Система <span>микрообучения</span><br>для МФЦ</h1>
+      <p class="hero-desc">Интерактивные мини-курсы по отечественному ПО: РЕД ОС, КриптоПро, Astra Linux, OnlyOffice — прямо на рабочем месте.</p>
+      <div class="hero-actions">
+        <button class="hero-btn-primary" data-nav="/login">Войти в систему</button>
+        <button class="hero-btn-secondary" data-nav="/login" data-tab="register">Создать аккаунт</button>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:40px">${coursePills}</div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">4</div>
+          <div class="hero-stat-label">Курса</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">14</div>
+          <div class="hero-stat-label">Уроков</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">75%</div>
+          <div class="hero-stat-label">Порог сдачи</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">3</div>
+          <div class="hero-stat-label">Роли доступа</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <section class="features-section">
+    <div class="section-title">Возможности платформы</div>
+    <div class="section-sub">Всё необходимое для уверенного перехода на отечественное ПО</div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="color:rgba(167,139,250,.8)">${featureIcons.book}</div>
+        <div class="feature-title">Структурированные курсы</div>
+        <div class="feature-desc">Материал разбит на уроки по 3–5 минут. Последовательное прохождение с тестами для закрепления знаний.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="color:rgba(34,197,94,.8)">${featureIcons.check}</div>
+        <div class="feature-title">Система тестирования</div>
+        <div class="feature-desc">Тест после каждого урока. Минимальный балл — 75%. Неограниченное количество попыток.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="color:rgba(147,197,253,.8)">${featureIcons.chart}</div>
+        <div class="feature-title">Личный прогресс</div>
+        <div class="feature-desc">Личный кабинет: процент прохождения, средний балл, история активности по каждому курсу.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="color:rgba(245,158,11,.8)">${featureIcons.support}</div>
+        <div class="feature-title">База знаний и поддержка</div>
+        <div class="feature-desc">Встроенный Service Desk, FAQ с поиском по категориям. Среднее время ответа — до 4 часов.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="color:rgba(239,68,68,.7)">${featureIcons.shield}</div>
+        <div class="feature-title">Ролевая модель</div>
+        <div class="feature-desc">Три роли: сотрудник, модератор, администратор. Разграничение прав доступа и управления курсами.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="color:rgba(6,182,212,.8)">${featureIcons.linux}</div>
+        <div class="feature-title">Совместимость с Linux</div>
+        <div class="feature-desc">Полная работа в РЕД ОС и Astra Linux через стандартный браузер. Без установки дополнений.</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:60px">
+      <div style="font-size:10.5px;color:rgba(255,255,255,.3);margin-bottom:16px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase">Демо-доступ</div>
+      <div style="display:inline-flex;gap:0;background:rgba(255,255,255,.04);backdrop-filter:blur(12px);border-radius:var(--r);border:1px solid rgba(255,255,255,.1);overflow:hidden;flex-wrap:wrap">
+        <div style="padding:14px 24px;font-size:12.5px;color:rgba(255,255,255,.5);border-right:1px solid rgba(255,255,255,.08)"><span style="font-weight:700;color:rgba(255,255,255,.85);display:block;margin-bottom:3px">Сотрудник</span><span>user@mfc.ru / 123456</span></div>
+        <div style="padding:14px 24px;font-size:12.5px;color:rgba(255,255,255,.5);border-right:1px solid rgba(255,255,255,.08)"><span style="font-weight:700;color:rgba(255,255,255,.85);display:block;margin-bottom:3px">Модератор</span><span>mod@puc.ru / 123456</span></div>
+        <div style="padding:14px 24px;font-size:12.5px;color:rgba(255,255,255,.5)"><span style="font-weight:700;color:rgba(255,255,255,.85);display:block;margin-bottom:3px">Администратор</span><span>admin@puc.ru / admin123</span></div>
+      </div>
+    </div>
+  </section>`;
+};
+
+// ---- AUTH ----
+Pages.login = function(tab='login') {
+  return `
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-icon"><svg width="28" height="28" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg></div>
+        <div class="auth-logo-text">МикроОбучение ПУЦ</div>
+        <div class="auth-logo-sub">Поволжский удостоверяющий центр</div>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab ${tab==='login'?'active':''}" data-auth-tab="login">Вход</button>
+        <button class="auth-tab ${tab==='register'?'active':''}" data-auth-tab="register">Регистрация</button>
+      </div>
+      <div id="auth-content">${tab==='login' ? loginForm() : registerForm()}</div>
+    </div>
+  </div>`;
+};
+
+function loginForm() {
+  return `
+  <div id="auth-error" class="form-error mb-4 hidden"></div>
+  <form id="login-form">
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="login-email" placeholder="user@mfc.ru" required value="user@mfc.ru">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Пароль</label>
+      <input class="form-input" type="password" id="login-pass" placeholder="••••••" required value="123456">
+    </div>
+    <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px">Войти в систему</button>
+  </form>
+  <div class="text-center mt-4 text-muted">Нет аккаунта? <a href="#" data-auth-tab="register" style="color:var(--p);font-weight:600">Зарегистрируйтесь</a></div>`;
+}
+
+function registerForm() {
+  return `
+  <div id="auth-error" class="form-error mb-4 hidden"></div>
+  <form id="register-form">
+    <div class="form-group">
+      <label class="form-label">ФИО</label>
+      <input class="form-input" type="text" id="reg-name" placeholder="Иванова Мария Сергеевна" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="reg-email" placeholder="ivanova@mfc.ru" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Пароль</label>
+      <input class="form-input" type="password" id="reg-pass" placeholder="Минимум 6 символов" required minlength="6">
+    </div>
+    <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px">Создать аккаунт</button>
+  </form>
+  <div class="text-center mt-4 text-muted">Уже есть аккаунт? <a href="#" data-auth-tab="login" style="color:var(--p);font-weight:600">Войдите</a></div>`;
+}
+
+// ---- DASHBOARD ----
+Pages.dashboard = function(user) {
+  const COURSES = Store.getCourses();
+  const totalCourses = COURSES.length;
+  const startedCourses = COURSES.filter(c => Store.getCourseProgress(c.id) > 0).length;
+  const completedCourses = COURSES.filter(c => Store.getCourseProgress(c.id) === 100).length;
+  const allLessons = COURSES.flatMap(c => (c.modules||[]).flatMap(m => m.lessons||[]));
+  const completedLessons = allLessons.filter(l => Store.isCompleted(l.id)).length;
+  const prog = Object.values(Store.getProgress());
+  const avgScore = prog.length ? Math.round(prog.reduce((s,p) => s + (p.score||0), 0) / prog.length) : 0;
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'});
+
+  const recentCourses = COURSES.slice(0, 3).map(c => {
+    const pct = Store.getCourseProgress(c.id);
+    const idx = COURSES.indexOf(c);
+    const ghost = String(idx + 1).padStart(2, '0');
+    return `
+    <div class="course-mini-card" data-nav="/courses/${c.id}" style="background:${c.color}">
+      <div class="course-mini-num">${ghost}</div>
+      <div class="course-mini-cat">${c.categoryLabel}</div>
+      <div class="course-mini-title">${c.title}</div>
+      <div class="course-mini-progress">
+        ${ProgressBar(pct)}
+        <div class="progress-label"><span>${pct > 0 ? 'В процессе' : 'Не начат'}</span><span>${pct}%</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return Layout(user, 'Дашборд',
+  `<div class="dash-hero">
+    <div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:6px;font-weight:600">Добрый день,</div>
+      <div class="dash-hero-name">${user.name}</div>
+      <div class="dash-hero-sub">Продолжайте обучение — ${completedLessons} из ${allLessons.length} уроков пройдено</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div class="dash-hero-date">${dateStr}</div>
+      <div style="margin-top:12px"><a href="#" data-nav="/courses" class="btn btn-primary btn-sm">Каталог курсов ${Icon.arrow_right}</a></div>
+    </div>
+  </div>
+  <div class="stats-grid">
+    ${StatCard(Icon.book,  totalCourses,     'Курсов',          '#6d5ef8', 'rgba(109,94,248,.18)')}
+    ${StatCard(Icon.check, completedLessons, 'Уроков пройдено', '#34d399', 'rgba(52,211,153,.18)')}
+    ${StatCard(Icon.star,  avgScore + '%',   'Средний балл',    '#fbbf24', 'rgba(251,191,36,.18)')}
+    ${StatCard(Icon.book,  completedCourses, 'Курсов завершено','#f87171', 'rgba(248,113,113,.18)')}
+  </div>
+  <div class="page-section">
+    <div class="section-heading">${Icon.book} Мои курсы</div>
+    <div class="courses-grid">${recentCourses}</div>
+    <div style="margin-top:14px"><a href="#" data-nav="/courses" class="btn btn-secondary btn-sm">Смотреть все курсы ${Icon.arrow_right}</a></div>
+  </div>`);
+};
+
+// ---- COURSES ----
+Pages.courses = function(user) {
+  const COURSES = Store.getCourses();
+  const categories = [{id:'all',label:'Все курсы'},{id:'os',label:'Операционные системы'},{id:'skzi',label:'СКЗИ'},{id:'office',label:'Офисное ПО'}];
+  const filterParam = window._courseFilter || 'all';
+  const filtered = filterParam === 'all' ? COURSES : COURSES.filter(c => c.category === filterParam);
+
+  const cards = filtered.map(c => {
+    const pct = Store.getCourseProgress(c.id);
+    const totalL = (c.modules||[]).reduce((s,m)=>s+(m.lessons||[]).length,0);
+    const doneL = (c.modules||[]).flatMap(m=>m.lessons||[]).filter(l=>Store.isCompleted(l.id)).length;
+    const idx = COURSES.indexOf(c);
+    const ghost = String(idx + 1).padStart(2, '0');
+    const statusBadge = pct===100
+      ? '<span class="badge badge-green">✓ Пройден</span>'
+      : pct > 0 ? '<span class="badge badge-blue">В процессе</span>'
+      : '<span class="badge badge-gray">Не начат</span>';
+    return `
+    <div class="course-card" data-nav="/courses/${c.id}">
+      <div class="course-card-banner" style="background:${c.color}">
+        <div class="course-card-ghost">${ghost}</div>
+        <span class="course-card-chip">${c.categoryLabel}</span>
+      </div>
+      <div class="course-card-body">
+        <div class="flex-between mb-2" style="margin-bottom:8px">${statusBadge}<span></span></div>
+        <div class="course-card-title">${c.title}</div>
+        <div class="course-card-desc">${c.description}</div>
+        ${ProgressBar(pct)}
+        <div class="progress-label"><span>${doneL} из ${totalL} уроков</span><span>${pct}%</span></div>
+        <div style="margin-top:14px"><button class="btn btn-primary btn-sm w-full">Перейти к курсу →</button></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const filters = categories.map(cat =>
+    `<button class="filter-btn ${filterParam===cat.id?'active':''}" data-filter="${cat.id}">${cat.label}</button>`
+  ).join('');
+
+  return Layout(user, 'Каталог курсов',
+  `<div class="filter-bar">${filters}</div>
+   <div class="courses-grid">${filtered.length ? cards : '<div class="empty-state"><div class="empty-state-icon">📚</div><div class="empty-state-text">Курсы не найдены</div></div>'}</div>`);
+};
+
+// ---- HELPERS ----
+function isLessonAccessible(lesson, mod) {
+  const idx = (mod.lessons||[]).indexOf(lesson);
+  if (idx === 0) return true;
+  const prev = mod.lessons[idx - 1];
+  return Store.isCompleted(prev.id);
+}
+
+// ---- COURSE DETAIL ----
+Pages.courseDetail = function(user, courseId) {
+  const COURSES = Store.getCourses();
+  const course = COURSES.find(c => c.id === parseInt(courseId));
+  if (!course) return Layout(user, 'Не найдено', '<p>Курс не найден</p>');
+  const pct = Store.getCourseProgress(course.id);
+
+  const modules = (course.modules||[]).map(mod => {
+    const lessonRows = (mod.lessons||[]).map(l => {
+      const done = Store.isCompleted(l.id);
+      const locked = !isLessonAccessible(l, mod);
+      const score = Store.getScore(l.id);
+      return `
+      <div class="lesson-row" ${locked ? 'style="opacity:0.5;cursor:not-allowed"' : `data-nav="/lesson/${l.id}"`}>
+        <div class="lesson-row-left">
+          <div class="lesson-status-icon ${done?'done':locked?'locked':'current'}">
+            ${done ? `<span style="color:var(--ok);font-size:12px">${Icon.check}</span>` : locked ? '<span style="font-size:14px">🔒</span>' : `<span style="color:var(--p);font-size:12px;font-weight:700">${l.id}</span>`}
+          </div>
+          <div class="lesson-row-title">${l.title}${locked ? ' <span style="font-size:11px;color:var(--t2)">(пройдите предыдущий тест)</span>' : ''}</div>
+        </div>
+        <div class="flex-center gap-3">
+          ${done && score !== null ? `<span class="badge badge-green">Балл: ${score}%</span>` : ''}
+          ${!locked ? `<span style="color:var(--t2);width:16px;height:16px">${Icon.arrow_right}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `
+    <div class="module-tree mb-4">
+      <div class="module-header">${Icon.book} ${mod.title}</div>
+      ${lessonRows}
+    </div>`;
+  }).join('');
+
+  return Layout(user, course.title,
+  `<div class="breadcrumb"><a href="#" data-nav="/courses">Курсы</a><span class="breadcrumb-sep">/</span><span>${course.title}</span></div>
+   <div style="display:grid;grid-template-columns:1fr 300px;gap:24px">
+     <div>${modules}</div>
+     <div>
+       <div class="card mb-4">
+         <div class="card-body">
+           <div style="font-size:13px;color:var(--t2);margin-bottom:8px">Прогресс курса</div>
+           <div style="font-size:32px;font-weight:800;color:var(--t);margin-bottom:8px">${pct}%</div>
+           ${ProgressBar(pct)}
+           <div style="font-size:13px;color:var(--t2);margin-top:8px">${(course.modules||[]).reduce((s,m)=>s+(m.lessons||[]).length,0)} уроков в ${(course.modules||[]).length} модулях</div>
+         </div>
+       </div>
+       <div class="card">
+         <div class="card-body">
+           <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:8px">О курсе</div>
+           <div style="font-size:13px;color:var(--t2);line-height:1.6">${course.description}</div>
+           <div style="margin-top:12px"><span class="badge badge-blue">${course.categoryLabel}</span></div>
+         </div>
+       </div>
+     </div>
+   </div>`);
+};
+
+// ---- LESSON VIEWER ----
+Pages.lesson = function(user, lessonId) {
+  const COURSES = Store.getCourses();
+  const allLessons = COURSES.flatMap(c => (c.modules||[]).flatMap(m => m.lessons||[]));
+  const lesson = allLessons.find(l => l.id === parseInt(lessonId));
+  if (!lesson) return Layout(user, 'Не найдено', '<p>Урок не найден</p>');
+  const mod = COURSES.flatMap(c => c.modules||[]).find(m => m.id === lesson.module_id);
+  const course = COURSES.find(c => (c.modules||[]).some(m => m.id === lesson.module_id));
+
+  // Блокировка: доступ только если предыдущий урок пройден (раздел 2.8)
+  if (!mod || !isLessonAccessible(lesson, mod)) {
+    const prevLesson = mod && mod.lessons[mod.lessons.indexOf(lesson) - 1];
+    return Layout(user, '🔒 Урок заблокирован',
+    `<div class="breadcrumb"><a href="#" data-nav="/courses">Курсы</a><span class="breadcrumb-sep">/</span><a href="#" data-nav="/courses/${course.id}">${course.title}</a><span class="breadcrumb-sep">/</span><span>${lesson.title}</span></div>
+     <div style="max-width:500px;margin:0 auto;text-align:center;padding:60px 20px">
+       <div style="font-size:64px;margin-bottom:24px">🔒</div>
+       <h2 style="font-size:22px;font-weight:700;margin-bottom:12px">Урок заблокирован</h2>
+       <p style="color:var(--t2);font-size:15px;margin-bottom:28px">Чтобы открыть этот урок, необходимо успешно пройти тест к предыдущему уроку (минимальный балл — 75%).</p>
+       ${prevLesson ? `<button class="btn btn-primary" data-nav="/lesson/${prevLesson.id}">Вернуться к предыдущему уроку ${Icon.arrow_right}</button>` : `<button class="btn btn-secondary" data-nav="/courses/${course?.id || ''}">К курсу</button>`}
+     </div>`);
+  }
+
+  const done = Store.isCompleted(lesson.id);
+  const hasTest = !!lesson.testId;
+  const idx = (mod.lessons||[]).indexOf(lesson);
+  const nextLesson = mod.lessons[idx + 1];
+  const nextAccessible = nextLesson && isLessonAccessible(nextLesson, mod);
+
+  // Видеоплеер (раздел 2.5 — "При наличии видеоматериалов предусмотрена интеграция HTML5-видеоплеера")
+  const videoBlock = lesson.video_url ? `
+    <div style="margin-bottom:20px;border-radius:12px;overflow:hidden;background:#000">
+      <video controls style="width:100%;max-height:360px">
+        <source src="${lesson.video_url}" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+      </video>
+    </div>` : '';
+
+  return Layout(user, lesson.title,
+  `<div class="breadcrumb">
+    <a href="#" data-nav="/courses">Курсы</a><span class="breadcrumb-sep">/</span>
+    <a href="#" data-nav="/courses/${course.id}">${course.title}</a><span class="breadcrumb-sep">/</span>
+    <span>${lesson.title}</span>
+   </div>
+   <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:start">
+     <div class="lesson-container">
+       ${done ? '<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;color:#15803d;font-weight:600">✓ Урок завершён</div>' : ''}
+       ${videoBlock}
+       <div class="lesson-content">${renderMd(lesson.content)}</div>
+       <div style="display:flex;justify-content:space-between;margin-top:20px;gap:12px">
+         ${idx > 0 ? `<button class="btn btn-secondary" data-nav="/lesson/${mod.lessons[idx-1].id}">${Icon.arrow_left} Предыдущий</button>` : '<div></div>'}
+         <div style="display:flex;gap:8px">
+           ${hasTest ? `<button class="btn btn-primary" data-nav="/test/${lesson.id}">Пройти тест ${Icon.arrow_right}</button>` :
+             nextLesson ? `<button class="btn btn-primary" data-nav="/lesson/${nextLesson.id}">Следующий урок ${Icon.arrow_right}</button>` :
+             `<button class="btn btn-success" data-nav="/courses/${course.id}">К списку уроков ${Icon.check}</button>`}
+           <button class="btn btn-secondary btn-sm" data-action="support-from-lesson" data-lesson-title="${lesson.title}" data-course="${course.title}" title="Задать вопрос по уроку">${Icon.ticket}</button>
+         </div>
+       </div>
+     </div>
+     <div>
+       <div class="card mb-3">
+         <div class="card-body">
+           <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:12px">Содержание модуля</div>
+           ${(mod.lessons||[]).map(l => {
+             const isDone = Store.isCompleted(l.id);
+             const isCurrent = l.id === lesson.id;
+             const isLocked = !isLessonAccessible(l, mod);
+             return `<div class="lesson-row" ${!isLocked ? `data-nav="/lesson/${l.id}"` : 'style="opacity:0.5;cursor:not-allowed"'} style="${isCurrent?'background:#f0f4ff;':''}">
+               <div class="lesson-row-left">
+                 <div class="lesson-status-icon ${isDone?'done':isCurrent?'current':'locked'}" style="width:22px;height:22px">
+                   ${isDone ? '<span style="color:var(--ok);font-size:12px">✓</span>' : isLocked ? '<span style="font-size:12px">🔒</span>' : isCurrent ? '<span style="color:var(--p);font-size:10px;font-weight:700">▶</span>' : ''}
+                 </div>
+                 <div style="font-size:13px;${isCurrent?'font-weight:600;color:var(--p)':''}">${l.title}</div>
+               </div>
+             </div>`;
+           }).join('')}
+         </div>
+       </div>
+       <div class="card">
+         <div class="card-body" style="padding:14px 16px">
+           <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">КОНТЕКСТ УРОКА</div>
+           <div style="font-size:12px;color:var(--t2)">Курс: <b style="color:var(--t)">${course?.title || ''}</b></div>
+           <div style="font-size:12px;color:var(--t2);margin-top:4px">Урок: <b style="color:var(--t)">${idx+1} из ${(mod?.lessons||[]).length}</b></div>
+         </div>
+       </div>
+     </div>
+   </div>`);
+};
+
+// ---- TEST PAGE ----
+Pages.test = function(user, lessonId) {
+  const COURSES = Store.getCourses();
+  const allLessons = COURSES.flatMap(c => (c.modules||[]).flatMap(m => m.lessons||[]));
+  const lesson = allLessons.find(l => l.id === parseInt(lessonId));
+  if (!lesson) return Layout(user, 'Ошибка', '<p>Урок не найден</p>');
+  const test = window._currentTest;
+  if (!test) return Layout(user, 'Ошибка', '<p>Тест не загружен</p>');
+  const course = COURSES.find(c => (c.modules||[]).some(m => (m.lessons||[]).some(l => l.id === lesson.id)));
+  const mod = COURSES.flatMap(c=>c.modules||[]).find(m=>m.id===lesson.module_id);
+  const nextLesson = mod?.lessons[(mod.lessons||[]).indexOf(lesson) + 1];
+
+  const state = window._testState || { answers: {}, submitted: false, score: 0 };
+  window._testState = state;
+
+  if (state.submitted) {
+    const pass = state.score >= 75;
+    return Layout(user, test.title,
+    `<div class="result-screen">
+      <div class="result-circle ${pass?'pass':'fail'}">${state.score}%</div>
+      <div class="result-title">${pass ? '🎉 Тест пройден!' : '❌ Попробуйте ещё раз'}</div>
+      <div class="result-subtitle">${pass ? `Отличная работа! Минимальный порог — 75%. Вы набрали ${state.score}%.` : `Недостаточно баллов. Перечитайте урок и попробуйте снова.`}</div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        ${!pass ? `<button class="btn btn-secondary" data-action="retry-test">Попробовать снова</button>` : ''}
+        <button class="btn btn-secondary" data-nav="/lesson/${lesson.id}">Вернуться к уроку</button>
+        ${pass && nextLesson ? `<button class="btn btn-primary" data-nav="/lesson/${nextLesson.id}">Следующий урок ${Icon.arrow_right}</button>` : ''}
+        ${pass && !nextLesson ? `<button class="btn btn-success" data-nav="/courses/${course.id}">К курсу ${Icon.check}</button>` : ''}
+      </div>
+    </div>`);
+  }
+
+  const questions = test.questions.map((q, qi) => {
+    const sel = state.answers[q.id] || [];
+    const isMultiple = q.type === 'multiple';
+    const answers = q.answers.map(a => {
+      const isSelected = sel.includes(a.id);
+      return `
+      <div class="quiz-answer ${isSelected?'selected':''}" data-q="${q.id}" data-a="${a.id}" data-multi="${isMultiple}">
+        <div class="${isMultiple?'quiz-checkbox':'quiz-radio'}">${isSelected ? (isMultiple ? '<svg viewBox="0 0 12 12" fill="white" width="10" height="10"><path d="M10 3L5 8.5 2 5.5"/></svg>' : '<div class="quiz-radio-dot"></div>') : ''}</div>
+        <div class="quiz-answer-text">${a.text}</div>
+      </div>`;
+    }).join('');
+    return `<div class="quiz-question"><div class="quiz-question-text">${qi+1}. ${q.text}${isMultiple?'<span class="badge badge-blue" style="margin-left:8px;font-size:11px">Несколько вариантов</span>':''}</div><div class="quiz-answers">${answers}</div></div>`;
+  }).join('');
+
+  return Layout(user, test.title,
+  `<div class="breadcrumb"><a href="#" data-nav="/courses/${course.id}">${course.title}</a><span class="breadcrumb-sep">/</span><a href="#" data-nav="/lesson/${lesson.id}">${lesson.title}</a><span class="breadcrumb-sep">/</span><span>Тест</span></div>
+   <div style="max-width:680px">
+     <div style="background:var(--surface);border-radius:12px;padding:16px 20px;border:1px solid var(--b);margin-bottom:20px;font-size:14px;color:var(--t2);">
+       ${Icon.info} Выберите правильный ответ для каждого вопроса. Минимальный проходной балл — 75%.
+     </div>
+     ${questions}
+     <button class="btn btn-primary btn-lg btn-full" data-action="submit-test" data-lesson="${lesson.id}" data-test="${lesson.testId}">Завершить тест</button>
+   </div>`);
+};
+
+// ---- SUPPORT ----
+Pages.support = function(user) {
+  const tab = window._supportTab || 'tickets';
+  const prefill = window._prefillTicket || {};
+  // faq and tickets are passed in via window._supportData
+  const faqArticles = (window._supportData && window._supportData.faq) || [];
+  const tickets = (window._supportData && window._supportData.tickets) || [];
+
+  const tabs = `
+  <div class="tab-bar" style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px">
+    <button class="tab-btn ${tab==='tickets'?'tab-active':''}" data-support-tab="tickets" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;cursor:pointer;border-bottom:${tab==='tickets'?'2px solid var(--primary)':'2px solid transparent'};color:${tab==='tickets'?'var(--primary)':'var(--text-muted)'};margin-bottom:-2px">${Icon.ticket} Мои обращения</button>
+    <button class="tab-btn ${tab==='faq'?'tab-active':''}" data-support-tab="faq" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;cursor:pointer;border-bottom:${tab==='faq'?'2px solid var(--primary)':'2px solid transparent'};color:${tab==='faq'?'var(--primary)':'var(--text-muted)'};margin-bottom:-2px">${Icon.faq} База знаний</button>
+  </div>`;
+
+  if (tab === 'faq') {
+    const articles = faqArticles;
+    const cats = ['Все', ...new Set(articles.map(a => a.category))];
+    const activeCat = window._faqCat || 'Все';
+    const catButtons = cats.map(c => `<button class="filter-btn ${activeCat===c?'active':''}" data-faq-cat="${c}" style="font-size:12px;padding:5px 14px">${c}</button>`).join('');
+    const visible = activeCat === 'Все' ? articles : articles.filter(a => a.category === activeCat);
+    const faqCards = visible.map(a => `
+    <div class="faq-card card mb-3" data-category="${a.category}" style="cursor:pointer" data-action="toggle-faq" data-faq-id="${a.id}">
+      <div class="card-body" style="padding:14px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span class="badge badge-blue" style="font-size:11px;margin-bottom:6px">${a.category}</span>
+            <div style="font-size:15px;font-weight:600;color:var(--t)">${a.title}</div>
+          </div>
+          <span id="faq-chevron-${a.id}" style="font-size:18px;color:var(--t2);transition:transform .2s">▾</span>
+        </div>
+        <div id="faq-body-${a.id}" style="display:none;margin-top:12px;font-size:14px;color:var(--t2);line-height:1.7;border-top:1px solid var(--border);padding-top:12px">${a.content}</div>
+      </div>
+    </div>`).join('');
+
+    return Layout(user, 'Техническая поддержка',
+    `${tabs}
+    <div style="max-width:800px">
+      <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;position:relative;min-width:200px">
+          <input id="faq-search" class="form-input" placeholder="Поиск по базе знаний..." style="padding-left:36px;font-size:14px">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t2)">${Icon.search}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px">${catButtons}</div>
+      <div id="faq-list">${faqCards || '<div class="empty-state"><div class="empty-state-icon">📖</div><div class="empty-state-text">Статьи не найдены</div></div>'}</div>
+      <div style="margin-top:20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid var(--b);font-size:13px;color:#64748b">
+        ${Icon.info} Не нашли ответ? <a href="#" data-support-tab="tickets" style="color:var(--p);font-weight:600">Создайте обращение</a> — специалисты ПУЦ ответят в течение рабочего дня.
+      </div>
+    </div>`);
+  }
+
+  const ticketList = tickets.length ? [...tickets].sort((a,b)=>b.id-a.id).map(t => `
+    <div class="ticket-card">
+      <div class="ticket-header">
+        <div class="ticket-title">${t.title}</div>
+        ${StatusBadge(t.status)}
+      </div>
+      <div class="ticket-meta">${new Date(t.created_at).toLocaleString('ru-RU')} · Обращение #${t.id}</div>
+      <div class="ticket-message">${t.message}</div>
+      ${t.response ? `<div class="ticket-response">💬 <b>Ответ специалиста:</b> ${t.response}</div>` : ''}
+    </div>`).join('') :
+    '<div class="empty-state"><div class="empty-state-icon">🎫</div><div class="empty-state-text">Обращений пока нет</div></div>';
+
+  return Layout(user, 'Техническая поддержка',
+  `${tabs}
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start">
+    <div>
+      <div class="section-heading">${Icon.ticket} Мои обращения</div>
+      ${ticketList}
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="section-heading">${Icon.plus} Новое обращение</div>
+        <form id="ticket-form">
+          <div class="form-group">
+            <label class="form-label">Тема обращения</label>
+            <input class="form-input" type="text" id="ticket-title" placeholder="Например: Не работает КриптоПро" required value="${prefill.title || ''}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Описание проблемы</label>
+            <textarea class="form-input" id="ticket-msg" placeholder="Опишите проблему подробно: что делали, что произошло, текст ошибки..." required style="min-height:120px">${prefill.msg || ''}</textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Отправить обращение</button>
+        </form>
+      </div>
+      <div class="card-footer text-muted">
+        Среднее время ответа — до 4 часов в рабочее время. <a href="#" data-support-tab="faq" style="color:var(--p)">Смотрите FAQ</a>
+      </div>
+    </div>
+  </div>`)
+};
+
+// ---- PROFILE ----
+Pages.profile = function(user) {
+  const prog = Object.values(Store.getProgress());
+  const avgScore = prog.length ? Math.round(prog.reduce((s,p) => s + (p.score||0), 0) / prog.length) : 0;
+  const completedLessons = prog.length;
+  const roleLabel = {user:'Сотрудник',moderator:'Модератор',admin:'Администратор'}[user.role];
+  const roleCls = {user:'role-user',moderator:'role-moderator',admin:'role-admin'}[user.role];
+  const initials = user.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+  const courseProgress = Store.getCourses().map(c => {
+    const pct = Store.getCourseProgress(c.id);
+    return pct > 0 ? `
+    <div style="margin-bottom:16px">
+      <div class="flex-between mb-2"><span style="font-size:14px;font-weight:600">${c.title}</span><span style="font-size:13px;color:var(--t2)">${pct}%</span></div>
+      ${ProgressBar(pct, c.color)}
+    </div>` : '';
+  }).filter(Boolean).join('');
+
+  return Layout(user, 'Профиль',
+  `<div style="display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start">
+    <div class="card">
+      <div class="card-body text-center">
+        <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:white;margin:0 auto 16px">${initials}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--t);margin-bottom:6px">${user.name}</div>
+        <div style="margin-bottom:12px"><span class="role-badge ${roleCls}">${roleLabel}</span></div>
+        <div style="font-size:13px;color:var(--t2);margin-bottom:4px">📧 ${user.email}</div>
+        ${user.department ? `<div style="font-size:13px;color:var(--t2)">🏢 ${user.department}</div>` : ''}
+        <div class="divider"></div>
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:800;color:var(--p)">${completedLessons}</div>
+            <div style="font-size:11px;color:var(--t2)">Уроков</div>
+          </div>
+          <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:800;color:var(--ok)">${avgScore}%</div>
+            <div style="font-size:11px;color:var(--t2)">Средний балл</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="section-heading">Прогресс по курсам</div>
+          ${courseProgress || '<div class="empty-state"><div class="empty-state-icon">📚</div><div class="empty-state-text">Вы ещё не начали ни одного курса</div></div>'}
+        </div>
+      </div>
+    </div>
+  </div>`);
+};
+
+// ---- ADMIN: USERS ----
+Pages.adminUsers = function(user) {
+  if (!Auth.require(['admin','moderator'])) return;
+  const users = (window._adminData && window._adminData.users) || [];
+  const rows = users.map(u => {
+    const roleCls = {user:'role-user',moderator:'role-moderator',admin:'role-admin'}[u.role];
+    const roleLabel = {user:'Сотрудник',moderator:'Модератор',admin:'Администратор'}[u.role];
+    const score = u.avgScore || 0;
+    const lessonCount = u.lessonCount || 0;
+    return `<tr>
+      <td><div style="font-weight:600">${u.name}</div><div style="font-size:12px;color:var(--t2)">${u.email}</div></td>
+      <td><span class="role-badge ${roleCls}">${roleLabel}</span></td>
+      <td>${u.department || '—'}</td>
+      <td>${lessonCount} уроков</td>
+      <td>${score ? score + '%' : '—'}</td>
+      ${user.role==='admin' ? `<td>
+        <select class="form-input" style="padding:4px 8px;font-size:12px;width:auto" onchange="changeRole(${u.id}, this.value)">
+          <option value="user" ${u.role==='user'?'selected':''}>Сотрудник</option>
+          <option value="moderator" ${u.role==='moderator'?'selected':''}>Модератор</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>Администратор</option>
+        </select>
+      </td>` : '<td></td>'}
+    </tr>`;
+  }).join('');
+
+  return Layout(user, 'Управление пользователями',
+  `<div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="data-table">
+        <thead><tr><th>Пользователь</th><th>Роль</th><th>Отдел</th><th>Прогресс</th><th>Средний балл</th><th>Изменить роль</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`);
+};
+
+// ---- ADMIN: TICKETS ----
+Pages.adminTickets = function(user) {
+  if (!Auth.require(['admin','moderator'])) return;
+  const tickets = ((window._adminData && window._adminData.tickets) || []).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  const ticketList = tickets.map(t => {
+    const owner = { name: t.user_name || 'Неизвестно' };
+    return `
+    <div class="ticket-card">
+      <div class="ticket-header">
+        <div>
+          <div class="ticket-title">${t.title}</div>
+          <div class="ticket-meta">от ${owner.name} · ${new Date(t.created_at).toLocaleString('ru-RU')}</div>
+        </div>
+        ${StatusBadge(t.status)}
+      </div>
+      <div class="ticket-message">${t.message}</div>
+      ${t.response ? `<div class="ticket-response">💬 ${t.response}</div>` : ''}
+      ${t.status !== 'closed' ? `
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" placeholder="Ответ специалиста..." id="resp-${t.id}" class="form-input" style="flex:1;font-size:13px;padding:7px 12px">
+        <button class="btn btn-sm btn-success" data-action="close-ticket" data-tid="${t.id}">Закрыть</button>
+        <button class="btn btn-sm btn-secondary" data-action="progress-ticket" data-tid="${t.id}">В работу</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  return Layout(user, 'Все обращения', ticketList || '<div class="empty-state"><div class="empty-state-icon">🎫</div><div class="empty-state-text">Обращений нет</div></div>');
+};
+
+// ---- ADMIN: FAQ ----
+Pages.adminFaq = function(user) {
+  if (!Auth.require(['admin','moderator'])) return;
+  const articles = (window._adminData && window._adminData.faq) || [];
+  const cats = ['Общее','РЕД ОС','КриптоПро','OnlyOffice','Astra Linux'];
+
+  const rows = articles.map(a => `
+    <tr>
+      <td><span class="badge badge-blue">${a.category}</span></td>
+      <td style="font-weight:600;max-width:300px">${a.title}</td>
+      <td style="font-size:13px;color:var(--t2);max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.content.slice(0,80)}…</td>
+      <td>
+        <button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:none" data-action="delete-faq" data-faq-id="${a.id}">${Icon.trash} Удалить</button>
+      </td>
+    </tr>`).join('');
+
+  const catOptions = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  return Layout(user, 'Управление базой знаний',
+  `<div style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start">
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="data-table">
+          <thead><tr><th>Категория</th><th>Вопрос</th><th>Ответ (превью)</th><th>Действия</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:var(--t2);padding:24px">Статей нет</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="section-heading">${Icon.add_circle} Добавить статью</div>
+        <form id="admin-faq-form">
+          <div class="form-group">
+            <label class="form-label">Категория</label>
+            <select class="form-input" id="faq-cat" required>
+              ${catOptions}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Вопрос / Заголовок</label>
+            <input class="form-input" type="text" id="faq-title" placeholder="Как сделать...?" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ответ</label>
+            <textarea class="form-input" id="faq-content" placeholder="Подробный ответ на вопрос..." required style="min-height:140px"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Добавить в базу знаний</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:16px;font-size:13px;color:var(--t2)">
+    ${Icon.info} Статьи базы знаний доступны всем пользователям системы в разделе «Поддержка» → «База знаний».
+  </div>`);
+};
+
+// ---- ADMIN: COURSES / COURSE CONSTRUCTOR ----
+Pages.adminCourses = function(user) {
+  if (!Auth.require(['admin','moderator'])) return;
+  const allCourses = Store.getCourses();
+  const analytics = (window._adminData && window._adminData.analytics) || {};
+  const courseStatsMap = {};
+  (analytics.courseStats || []).forEach(s => { courseStatsMap[s.id] = s; });
+  const rows = allCourses.map(c => {
+    const totalL = (c.modules||[]).reduce((s,m)=>s+(m.lessons||[]).length,0);
+    const cStats = courseStatsMap[c.id] || {};
+    const avgScore = 0;
+    const completions = cStats.completions || 0;
+    const isCustom = !!(c.is_custom || c.isCustom);
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:6px;height:40px;border-radius:3px;background:${c.color}"></div>
+          <div>
+            <div style="font-weight:600">${c.title}</div>
+            <div style="font-size:12px;color:var(--t2)">${(c.modules||[]).length} модулей${isCustom ? ' · <span style="color:#7c3aed">создан через конструктор</span>' : ''}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge badge-blue">${c.categoryLabel || c.category}</span></td>
+      <td>${totalL}</td>
+      <td>${completions}</td>
+      <td>—</td>
+      ${isCustom ? `<td><button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:none" data-action="delete-course" data-course-id="${c.id}">${Icon.trash}</button></td>` : '<td></td>'}
+    </tr>`;
+  }).join('');
+
+  const showForm = window._showCourseForm;
+  const constructorForm = showForm ? `
+  <div class="card mb-4" style="border:2px solid var(--primary)">
+    <div class="card-body">
+      <div class="section-heading" style="color:var(--p)">${Icon.add_circle} CourseConstructor — Создание курса</div>
+      <form id="course-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label class="form-label">Название курса</label>
+            <input class="form-input" type="text" id="cc-title" placeholder="Например: Основы МЭДО" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Категория</label>
+            <select class="form-input" id="cc-category" required>
+              <option value="os">Операционные системы</option>
+              <option value="skzi">СКЗИ</option>
+              <option value="office">Офисное ПО</option>
+              <option value="other">Прочее</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Описание курса</label>
+          <textarea class="form-input" id="cc-desc" placeholder="Краткое описание курса для сотрудников..." style="min-height:80px" required></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label class="form-label">Цвет курса</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${['#2563eb','#7c3aed','#16a34a','#dc2626','#d97706','#0891b2'].map(col =>
+                `<div data-color-pick="${col}" style="width:28px;height:28px;border-radius:6px;background:${col};cursor:pointer;border:2px solid transparent" onclick="document.getElementById('cc-color').value='${col}';this.parentNode.querySelectorAll('[data-color-pick]').forEach(el=>el.style.border='2px solid transparent');this.style.border='2px solid #000'"></div>`
+              ).join('')}
+              <input type="color" id="cc-color" value="#2563eb" style="width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Название первого модуля</label>
+            <input class="form-input" type="text" id="cc-module" placeholder="Введение в курс" required>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button type="submit" class="btn btn-primary">${Icon.check} Создать курс</button>
+          <button type="button" class="btn btn-secondary" data-action="toggle-course-form">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>` : '';
+
+  return Layout(user, 'Управление курсами',
+  `${constructorForm}
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="data-table">
+        <thead><tr><th>Курс</th><th>Категория</th><th>Уроков</th><th>Прохождений</th><th>Средний балл</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`,
+  `<button class="btn btn-primary btn-sm" data-action="toggle-course-form">${Icon.plus} Создать курс</button>`);
+};
+
+// ---- ADMIN: ANALYTICS ----
+Pages.adminAnalytics = function(user) {
+  if (!Auth.require(['admin','moderator'])) return;
+  const analytics = (window._adminData && window._adminData.analytics) || {};
+  const allUsers = (window._adminData && window._adminData.users) || [];
+
+  const courseRows = (analytics.courseStats || []).map(s => {
+    const pct = s.lessonCount ? Math.min(100, Math.round((s.completions / Math.max(1, s.lessonCount)) * 100)) : 0;
+    return `
+    <div style="margin-bottom:12px">
+      <div class="flex-between mb-2">
+        <span style="font-size:14px;font-weight:500">${s.title}</span>
+        <span style="font-size:13px;color:var(--t2)">${s.completions} прохождений</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:${s.color}"></div></div>
+    </div>`;
+  }).join('');
+
+  const byStatus = {
+    open: analytics.openTickets || 0,
+    in_progress: analytics.inProgressTickets || 0,
+    closed: analytics.closedTickets || 0
+  };
+
+  return Layout(user, 'Аналитика',
+  `<div class="stats-grid mb-6">
+    ${StatCard(Icon.users,  analytics.users || 0,            'Пользователей',       '#5b52f0', '#eeeeff')}
+    ${StatCard(Icon.check,  analytics.completedLessons || 0, 'Завершений уроков',   '#047857', '#ecfdf5')}
+    ${StatCard(Icon.star,   (analytics.avgScore || 0) + '%', 'Средний балл',        '#7c3aed', '#f4f0ff')}
+    ${StatCard(Icon.ticket, analytics.tickets || 0,          'Всего обращений',     '#c53030', '#fff5f5')}
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="card">
+      <div class="card-body">
+        <div class="section-heading">Активность по курсам</div>
+        ${courseRows || '<div class="text-muted">Нет данных</div>'}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="section-heading">Обращения в поддержку</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+          <div class="flex-between"><span style="font-size:14px">🔴 Открытые</span><span class="badge badge-red">${byStatus.open}</span></div>
+          <div class="flex-between"><span style="font-size:14px">🟡 В работе</span><span class="badge badge-yellow">${byStatus.in_progress}</span></div>
+          <div class="flex-between"><span style="font-size:14px">🟢 Закрытые</span><span class="badge badge-green">${byStatus.closed}</span></div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-heading" style="margin-top:0">Пользователи по ролям</div>
+        ${allUsers.length ? Object.entries(allUsers.reduce((acc,u)=>{acc[u.role]=(acc[u.role]||0)+1;return acc;},{})).map(([role,count]) => {
+          const labels = {user:'Сотрудники',moderator:'Модераторы',admin:'Администраторы'};
+          const pct = Math.round((count/allUsers.length)*100);
+          return `<div style="margin-bottom:10px"><div class="flex-between mb-1"><span style="font-size:13px">${labels[role]||role}</span><span style="font-size:13px;color:var(--t2)">${count}</span></div>${ProgressBar(pct)}</div>`;
+        }).join('') : ''}
+      </div>
+    </div>
+  </div>`);
+};
+
+// ========== APP ==========
+const App = {
+  async render() {
+    const { route, parts, params } = Router.parse();
+    const user = Auth.getUser();
+    const app = document.getElementById('app');
+
+    // Public routes
+    if (route === '/') { app.innerHTML = Pages.landing(); return; }
+    if (route === '/login') { app.innerHTML = Pages.login(window._authTab || 'login'); window._authTab = null; return; }
+
+    // Protected routes
+    if (!user) { Router.go('/login'); return; }
+
+    // Ensure courses + progress are loaded
+    if (!Store._courses) {
+      showLoading();
+      await Promise.all([Store.loadCourses(), Store.loadProgress()]);
+    }
+
+    if (route === '/dashboard') { app.innerHTML = Pages.dashboard(user); return; }
+    if (route === '/courses') {
+      if (parts[1]) { app.innerHTML = Pages.courseDetail(user, parts[1]); }
+      else { app.innerHTML = Pages.courses(user); }
+      return;
+    }
+    if (route === '/lesson') {
+      // Reload progress so lesson status is fresh
+      await Store.loadProgress();
+      app.innerHTML = Pages.lesson(user, parts[1]);
+      return;
+    }
+    if (route === '/test') {
+      // Load test data from API
+      const lessonId = parts[1];
+      try {
+        window._currentTest = await API.lessons.getTest(lessonId);
+      } catch (e) {
+        window._currentTest = null;
+      }
+      window._testState = null;
+      app.innerHTML = Pages.test(user, lessonId);
+      return;
+    }
+    if (route === '/support') {
+      showLoading();
+      try {
+        const [faq, tickets] = await Promise.all([API.faq.list(), API.tickets.list()]);
+        window._supportData = { faq, tickets };
+      } catch (_) { window._supportData = { faq: [], tickets: [] }; }
+      app.innerHTML = Pages.support(user);
+      return;
+    }
+    if (route === '/profile') { app.innerHTML = Pages.profile(user); return; }
+    if (route === '/admin') {
+      const sub = parts[1];
+      showLoading();
+      try {
+        if (sub === 'users') {
+          const [users, analytics] = await Promise.all([API.users.list(), API.analytics.get()]);
+          window._adminData = { users, analytics };
+          app.innerHTML = Pages.adminUsers(user);
+        } else if (sub === 'courses') {
+          const [analytics] = await Promise.all([API.analytics.get()]);
+          window._adminData = window._adminData || {};
+          window._adminData.analytics = analytics;
+          app.innerHTML = Pages.adminCourses(user);
+        } else if (sub === 'analytics') {
+          const [users, analytics] = await Promise.all([API.users.list(), API.analytics.get()]);
+          window._adminData = { users, analytics };
+          app.innerHTML = Pages.adminAnalytics(user);
+        } else if (sub === 'tickets') {
+          const tickets = await API.tickets.listAll();
+          window._adminData = window._adminData || {};
+          window._adminData.tickets = tickets;
+          app.innerHTML = Pages.adminTickets(user);
+        } else if (sub === 'faq') {
+          const faq = await API.faq.list();
+          window._adminData = window._adminData || {};
+          window._adminData.faq = faq;
+          app.innerHTML = Pages.adminFaq(user);
+        } else { Router.go('/admin/analytics'); }
+      } catch (e) {
+        console.error(e);
+        app.innerHTML = Layout(user, 'Ошибка', '<p style="color:red">Не удалось загрузить данные</p>');
+      }
+      return;
+    }
+    Router.go('/dashboard');
+  }
+};
+
+// ========== EVENT DELEGATION ==========
+document.addEventListener('click', function(e) {
+  const t = e.target.closest('[data-nav]');
+  const a = e.target.closest('[data-action]');
+  const authTab = e.target.closest('[data-auth-tab]');
+  const filter = e.target.closest('[data-filter]');
+  const quizA = e.target.closest('.quiz-answer');
+
+  if (t) { e.preventDefault(); Router.go(t.dataset.nav); return; }
+
+  if (authTab) {
+    e.preventDefault();
+    const tab = authTab.dataset.authTab;
+    document.getElementById('auth-content').innerHTML = tab === 'login' ? loginForm() : registerForm();
+    document.querySelectorAll('.auth-tab').forEach(el => el.classList.toggle('active', el.dataset.authTab === tab));
+    return;
+  }
+
+  if (filter) {
+    window._courseFilter = filter.dataset.filter;
+    App.render();
+    return;
+  }
+
+  if (quizA && !window._testState?.submitted) {
+    const qId = parseInt(quizA.dataset.q);
+    const aId = parseInt(quizA.dataset.a);
+    const multi = quizA.dataset.multi === 'true';
+    if (!window._testState) window._testState = {answers:{},submitted:false,score:0};
+    if (multi) {
+      const sel = window._testState.answers[qId] || [];
+      const idx = sel.indexOf(aId);
+      if (idx > -1) sel.splice(idx, 1); else sel.push(aId);
+      window._testState.answers[qId] = sel;
+    } else {
+      window._testState.answers[qId] = [aId];
+    }
+    // re-render answers for this question
+    const qEl = quizA.closest('.quiz-answers');
+    qEl.querySelectorAll('.quiz-answer').forEach(el => {
+      const aIdEl = parseInt(el.dataset.a);
+      const sel = window._testState.answers[qId] || [];
+      const isS = sel.includes(aIdEl);
+      el.classList.toggle('selected', isS);
+      if (multi) {
+        const cb = el.querySelector('.quiz-checkbox');
+        if (cb) cb.innerHTML = isS ? '<svg viewBox="0 0 12 12" fill="white" width="10" height="10"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none"/></svg>' : '';
+      } else {
+        const rb = el.querySelector('.quiz-radio');
+        if (rb) rb.innerHTML = isS ? '<div class="quiz-radio-dot"></div>' : '';
+      }
+    });
+    return;
+  }
+
+  if (a) {
+    const action = a.dataset.action;
+    if (action === 'logout') {
+      Auth.logout().then(() => Router.go('/'));
+      return;
+    }
+    if (action === 'submit-test') {
+      const lessonId = parseInt(a.dataset.lesson);
+      const test = window._currentTest;
+      if (!test) return;
+      const state = window._testState || {answers:{}, submitted:false, score:0};
+      let correct = 0, total = 0;
+      (test.questions||[]).forEach(q => {
+        const correctIds = (q.answers||[]).filter(a=>a.correct).map(a=>a.id).sort().join(',');
+        const given = (state.answers[q.id] || []).sort().join(',');
+        total++;
+        if (correctIds === given) correct++;
+      });
+      const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+      state.score = score;
+      state.submitted = true;
+      window._testState = state;
+      if (score >= 75) {
+        Store.markComplete(lessonId, score).then(() => {
+          toast(`✅ Тест пройден! Результат: ${score}%`, 'success');
+          App.render();
+        });
+      } else {
+        toast(`❌ Недостаточно баллов: ${score}%. Нужно 75%`, 'error');
+        App.render();
+      }
+      return;
+    }
+    if (action === 'retry-test') {
+      window._testState = null;
+      App.render();
+      return;
+    }
+    if (action === 'close-ticket' || action === 'progress-ticket') {
+      const tid = parseInt(a.dataset.tid);
+      const status = action === 'close-ticket' ? 'closed' : 'in_progress';
+      const resp = document.getElementById(`resp-${tid}`)?.value || null;
+      API.tickets.update(tid, status, resp).then(() => {
+        toast(action === 'close-ticket' ? 'Обращение закрыто' : 'Статус изменён на «В работе»', 'success');
+        App.render();
+      }).catch(e => toast('Ошибка: ' + e.message, 'error'));
+      return;
+    }
+    if (action === 'support-from-lesson') {
+      window._prefillTicket = {
+        title: `Вопрос по уроку: ${a.dataset.lessonTitle}`,
+        msg: `Курс: ${a.dataset.course}\nУрок: ${a.dataset.lessonTitle}\n\nОпишите вашу проблему или вопрос:`
+      };
+      window._supportTab = 'tickets';
+      Router.go('/support');
+      return;
+    }
+    if (action === 'toggle-faq') {
+      const id = a.dataset.faqId;
+      const body = document.getElementById(`faq-body-${id}`);
+      const chevron = document.getElementById(`faq-chevron-${id}`);
+      if (body) {
+        const open = body.style.display !== 'none';
+        body.style.display = open ? 'none' : 'block';
+        if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
+      }
+      return;
+    }
+    if (action === 'toggle-course-form') {
+      window._showCourseForm = !window._showCourseForm;
+      App.render();
+      return;
+    }
+    if (action === 'delete-faq') {
+      const id = parseInt(a.dataset.faqId);
+      API.faq.delete(id).then(() => {
+        toast('Статья удалена', 'success');
+        App.render();
+      }).catch(e => toast('Ошибка: ' + e.message, 'error'));
+      return;
+    }
+    if (action === 'delete-course') {
+      const id = parseInt(a.dataset.courseId);
+      API.courses.delete(id).then(() => {
+        Store._courses = null; // invalidate cache
+        toast('Курс удалён', 'success');
+        App.render();
+      }).catch(e => toast('Ошибка: ' + e.message, 'error'));
+      return;
+    }
+  }
+
+  // Support tab switching
+  const supportTab = e.target.closest('[data-support-tab]');
+  if (supportTab) {
+    e.preventDefault();
+    window._prefillTicket = null;
+    window._supportTab = supportTab.dataset.supportTab;
+    App.render();
+    return;
+  }
+
+  // FAQ category filter
+  const faqCat = e.target.closest('[data-faq-cat]');
+  if (faqCat) {
+    e.preventDefault();
+    window._faqCat = faqCat.dataset.faqCat;
+    App.render();
+    return;
+  }
+});
+
+document.addEventListener('input', function(e) {
+  if (e.target.id === 'faq-search') {
+    const q = e.target.value.toLowerCase();
+    const activeCat = window._faqCat || 'Все';
+    document.querySelectorAll('.faq-card').forEach(card => {
+      const matchSearch = !q || card.textContent.toLowerCase().includes(q);
+      const matchCat = activeCat === 'Все' || card.dataset.category === activeCat;
+      card.style.display = (matchSearch && matchCat) ? '' : 'none';
+    });
+  }
+});
+
+document.addEventListener('submit', function(e) {
+  e.preventDefault();
+  const form = e.target;
+  if (form.id === 'login-form') {
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-pass').value;
+    const btn = form.querySelector('[type=submit]');
+    if (btn) btn.disabled = true;
+    Auth.login(email, pass).then(res => {
+      if (res.ok) {
+        // Load courses & progress after login
+        Store._courses = null;
+        Promise.all([Store.loadCourses(), Store.loadProgress()]).then(() => Router.go('/dashboard'));
+      } else {
+        const errEl = document.getElementById('auth-error');
+        errEl.textContent = res.error;
+        errEl.classList.remove('hidden');
+        if (btn) btn.disabled = false;
+      }
+    });
+    return;
+  }
+  if (form.id === 'register-form') {
+    const name = document.getElementById('reg-name').value;
+    const email = document.getElementById('reg-email').value;
+    const pass = document.getElementById('reg-pass').value;
+    const btn = form.querySelector('[type=submit]');
+    if (btn) btn.disabled = true;
+    Auth.register(name, email, pass).then(res => {
+      if (res.ok) {
+        toast('Аккаунт создан!', 'success');
+        Store._courses = null;
+        Promise.all([Store.loadCourses(), Store.loadProgress()]).then(() => Router.go('/dashboard'));
+      } else {
+        const errEl = document.getElementById('auth-error');
+        errEl.textContent = res.error;
+        errEl.classList.remove('hidden');
+        if (btn) btn.disabled = false;
+      }
+    });
+    return;
+  }
+  if (form.id === 'ticket-form') {
+    const title = document.getElementById('ticket-title').value;
+    const msg = document.getElementById('ticket-msg').value;
+    API.tickets.create(title, msg).then(() => {
+      window._prefillTicket = null;
+      window._supportData = null;
+      toast('Обращение отправлено!', 'success');
+      App.render();
+    }).catch(e => toast('Ошибка: ' + e.message, 'error'));
+    return;
+  }
+  if (form.id === 'admin-faq-form') {
+    const cat = document.getElementById('faq-cat').value;
+    const title = document.getElementById('faq-title').value;
+    const content = document.getElementById('faq-content').value;
+    API.faq.create(cat, title, content).then(() => {
+      toast('Статья добавлена в базу знаний', 'success');
+      App.render();
+    }).catch(e => toast('Ошибка: ' + e.message, 'error'));
+    return;
+  }
+  if (form.id === 'course-form') {
+    const catVal = document.getElementById('cc-category').value;
+    const catLabels = { os: 'Операционные системы', skzi: 'СКЗИ', office: 'Офисное ПО', other: 'Прочее' };
+    const courseData = {
+      title: document.getElementById('cc-title').value,
+      category: catVal,
+      categoryLabel: catLabels[catVal] || 'Прочее',
+      color: document.getElementById('cc-color').value,
+      description: document.getElementById('cc-desc').value,
+      moduleTitle: document.getElementById('cc-module').value
+    };
+    API.courses.create(courseData).then(newCourse => {
+      Store._courses = null; // invalidate cache
+      window._showCourseForm = false;
+      toast(`Курс «${newCourse.title}» создан!`, 'success');
+      App.render();
+    }).catch(e => toast('Ошибка: ' + e.message, 'error'));
+    return;
+  }
+});
+
+function changeRole(userId, newRole) {
+  API.users.updateRole(userId, newRole).then(() => {
+    toast('Роль пользователя изменена', 'success');
+  }).catch(e => toast('Ошибка: ' + e.message, 'error'));
+}
+
+// ========== INIT ==========
+Auth.init().then(() => Router.init());
+</script>
+</body>
+</html>
